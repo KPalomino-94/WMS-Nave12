@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="WMS·12"/>
+<meta name="theme-color" content="#0A1628"/>
+<title>WMS · Nave 12</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsqr/1.4.0/jsQR.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+:root{
+  --bg:#0A1628;--surface:#0F1E38;--card:#162240;--border:#1E3060;
+  --accent:#00C2FF;--accent2:#FF6B2B;--green:#00E599;--red:#FF4444;
+  --yellow:#FFD166;--text:#EDF2FF;--muted:#6B82A8;
+  --font-hd:'Syne',sans-serif;--font-mono:'DM Mono',monospace;
+  --font-body:'DM Sans',sans-serif;--r:14px;--r-lg:20px;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font-body);}
+
+/* SPLASH */
+#splash{position:fixed;inset:0;background:var(--bg);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:9999;gap:12px;transition:opacity .5s;}
+#splash.hide{opacity:0;pointer-events:none;}
+.splash-logo{font-family:var(--font-hd);font-size:48px;font-weight:800;letter-spacing:-2px;}
+.splash-logo span{color:var(--accent);}
+.splash-sub{font-family:var(--font-mono);font-size:11px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;}
+.splash-bar{width:140px;height:2px;background:var(--border);border-radius:2px;overflow:hidden;margin-top:28px;}
+.splash-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--green));animation:fill 1.4s ease forwards;}
+@keyframes fill{from{width:0}to{width:100%}}
+
+/* LAYOUT */
+#app{height:100vh;display:flex;flex-direction:column;overflow:hidden;}
+header{padding:12px 16px 10px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;}
+.logo{font-family:var(--font-hd);font-weight:800;font-size:20px;letter-spacing:-.5px;}
+.logo span{color:var(--accent);}
+.hdr-right{display:flex;align-items:center;gap:8px;}
+.badge{font-family:var(--font-mono);font-size:10px;background:var(--border);color:var(--muted);padding:4px 8px;border-radius:10px;}
+.dl-btn{font-family:var(--font-mono);font-size:10px;padding:6px 12px;border-radius:20px;border:1px solid var(--accent);color:var(--accent);background:transparent;cursor:pointer;}
+
+main{flex:1;overflow-y:auto;padding:14px 14px 90px;-webkit-overflow-scrolling:touch;}
+
+/* NAV */
+nav{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);display:grid;grid-template-columns:repeat(5,1fr);padding:6px 2px;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
+.nb{display:flex;flex-direction:column;align-items:center;gap:2px;background:none;border:none;color:var(--muted);cursor:pointer;font-family:var(--font-body);font-size:9px;font-weight:500;padding:4px 2px;transition:color .15s;}
+.nb svg{width:22px;height:22px;stroke-width:1.8;}
+.nb.active{color:var(--accent);}
+
+/* SECTION */
+.sec{display:none;animation:fadeUp .2s ease;}
+.sec.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.sec-hd{font-family:var(--font-hd);font-size:22px;font-weight:700;margin-bottom:14px;line-height:1.2;}
+.sec-hd span{color:var(--accent);}
+
+/* CARD */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:16px;margin-bottom:12px;}
+.card-lbl{font-family:var(--font-mono);font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+
+/* OP BUTTONS */
+.ops-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.op-btn{background:var(--card);border:1.5px solid var(--border);border-radius:var(--r);padding:16px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;cursor:pointer;transition:all .15s;}
+.op-btn:active{transform:scale(.96);}
+.op-btn.active{border-width:2px;}
+.op-btn svg{width:26px;height:26px;}
+.op-btn span{font-size:11px;font-weight:500;text-align:center;line-height:1.3;}
+.op-i svg{stroke:var(--green);}   .op-i.active{border-color:var(--green);background:rgba(0,229,153,.08);}
+.op-e svg{stroke:var(--accent2);}  .op-e.active{border-color:var(--accent2);background:rgba(255,107,43,.08);}
+.op-c svg{stroke:var(--accent);}   .op-c.active{border-color:var(--accent);background:rgba(0,194,255,.08);}
+.op-t svg{stroke:var(--yellow);}   .op-t.active{border-color:var(--yellow);background:rgba(255,209,102,.08);}
+
+/* MODE TOGGLE */
+.mode-row{display:flex;gap:6px;margin-bottom:12px;}
+.mode-btn{flex:1;padding:9px 6px;border-radius:10px;border:1.5px solid var(--border);background:none;color:var(--muted);font-family:var(--font-mono);font-size:10px;letter-spacing:1px;cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center;gap:5px;}
+.mode-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(0,194,255,.08);}
+.mode-btn svg{width:15px;height:15px;}
+
+/* SCANNER */
+.scan-wrap{position:relative;border-radius:var(--r);overflow:hidden;background:#000;aspect-ratio:1/1;width:100%;}
+#vid-loc,#vid-pal{width:100%;height:100%;object-fit:cover;display:block;}
+.scan-overlay{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.scan-frame{width:62%;aspect-ratio:1/1;border:2px solid var(--accent);border-radius:12px;box-shadow:0 0 0 9999px rgba(0,0,0,.55);animation:pulse 2s ease-in-out infinite;}
+.scan-frame.pal{border-color:var(--accent2);}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+.scan-lbl{position:absolute;bottom:10px;left:0;right:0;text-align:center;font-family:var(--font-mono);font-size:11px;color:var(--accent);letter-spacing:1px;}
+.scan-lbl.pal{color:var(--accent2);}
+.scan-idle{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);aspect-ratio:1/1;color:var(--muted);font-size:12px;}
+.scan-idle svg{width:44px;height:44px;opacity:.35;}
+.scan-open-btn{padding:10px 22px;border-radius:8px;border:none;font-weight:600;font-size:13px;cursor:pointer;}
+.scan-open-btn.loc{background:var(--accent);color:var(--bg);}
+.scan-open-btn.pal{background:var(--accent2);color:#fff;}
+.scan-cancel{width:100%;padding:9px;background:var(--border);border:none;border-radius:8px;color:var(--muted);cursor:pointer;font-size:12px;margin-top:6px;}
+
+/* CHIP */
+.chip{display:flex;align-items:center;gap:8px;border-radius:10px;padding:10px 12px;margin-top:8px;}
+.chip.loc{background:rgba(0,194,255,.1);border:1px solid var(--accent);}
+.chip.pal{background:rgba(255,107,43,.1);border:1px solid var(--accent2);}
+.chip-lbl{font-family:var(--font-mono);font-size:9px;letter-spacing:1px;}
+.chip.loc .chip-lbl{color:var(--accent);}
+.chip.pal .chip-lbl{color:var(--accent2);}
+.chip-val{font-family:var(--font-mono);font-size:13px;font-weight:500;flex:1;word-break:break-all;}
+.chip-x{background:none;border:none;color:var(--muted);cursor:pointer;font-size:20px;line-height:1;padding:0 2px;}
+
+/* PISTOL INPUT */
+.pistol-card{background:var(--card);border:1px solid var(--border);border-radius:var(--r-lg);padding:14px;margin-bottom:12px;}
+.pistol-field{display:flex;gap:8px;margin-bottom:8px;align-items:center;}
+.pistol-field:last-child{margin-bottom:0;}
+.pistol-field input{flex:1;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:12px 14px;color:var(--text);font-family:var(--font-mono);font-size:13px;outline:none;transition:border-color .2s;}
+.pistol-field input:focus{border-color:var(--accent);}
+.pistol-apply{background:var(--accent);color:var(--bg);border:none;border-radius:10px;padding:12px 16px;font-weight:700;cursor:pointer;font-size:13px;white-space:nowrap;}
+
+/* FORM FIELDS */
+.field{margin-bottom:10px;}
+.field label{display:block;font-family:var(--font-mono);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:5px;}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;color:var(--text);font-family:var(--font-body);font-size:14px;transition:border-color .2s;outline:none;}
+.field input:focus,.field select:focus{border-color:var(--accent);}
+.field select option{background:var(--card);}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+
+/* SUBMIT */
+.submit-btn{width:100%;padding:15px;border-radius:var(--r);border:none;cursor:pointer;font-family:var(--font-hd);font-size:15px;font-weight:700;letter-spacing:.3px;transition:transform .1s;margin-top:4px;}
+.submit-btn:active{transform:scale(.98);}
+.submit-btn:disabled{opacity:.35;cursor:not-allowed;}
+.submit-btn.i{background:var(--green);color:#001a0a;}
+.submit-btn.e{background:var(--accent2);color:#fff;}
+.submit-btn.c{background:var(--accent);color:var(--bg);}
+.submit-btn.t{background:var(--yellow);color:#1a1000;}
+
+/* TOAST */
+#toast{position:fixed;top:76px;left:50%;transform:translateX(-50%) translateY(-16px);background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:11px 18px;font-size:13px;font-weight:500;opacity:0;transition:all .25s;z-index:8000;max-width:88vw;text-align:center;pointer-events:none;white-space:nowrap;}
+#toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+#toast.ok{border-color:var(--green);color:var(--green);}
+#toast.err{border-color:var(--red);color:var(--red);}
+#toast.inf{border-color:var(--accent);color:var(--accent);}
+
+/* LOG */
+.log-item{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--border);align-items:flex-start;}
+.log-item:last-child{border-bottom:none;}
+.log-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px;}
+.ld-i{background:var(--green);}   .ld-e{background:var(--accent2);}
+.ld-c{background:var(--accent);}  .ld-t{background:var(--yellow);}
+.log-info{flex:1;min-width:0;}
+.log-code{font-family:var(--font-mono);font-size:12px;font-weight:500;}
+.log-det{font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.log-time{font-family:var(--font-mono);font-size:10px;color:var(--muted);flex-shrink:0;}
+.op-pill{font-family:var(--font-mono);font-size:9px;letter-spacing:1px;text-transform:uppercase;padding:3px 7px;border-radius:6px;}
+.op-pill.i{background:rgba(0,229,153,.15);color:var(--green);}
+.op-pill.e{background:rgba(255,107,43,.15);color:var(--accent2);}
+.op-pill.c{background:rgba(0,194,255,.15);color:var(--accent);}
+.op-pill.t{background:rgba(255,209,102,.15);color:var(--yellow);}
+
+/* CONSULTA RESULT */
+.res-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.res-row:last-child{border-bottom:none;}
+.res-k{font-family:var(--font-mono);font-size:9px;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.res-v{font-size:13px;font-weight:500;text-align:right;max-width:60%;}
+.pill{padding:4px 10px;border-radius:20px;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+.p-LIBRE{background:rgba(0,229,153,.15);color:var(--green);border:1px solid var(--green);}
+.p-OCUPADO{background:rgba(255,209,102,.15);color:var(--yellow);border:1px solid var(--yellow);}
+.p-BLOQUEADO{background:rgba(255,68,68,.15);color:var(--red);border:1px solid var(--red);}
+.p-RESERVADO{background:rgba(0,194,255,.15);color:var(--accent);border:1px solid var(--accent);}
+.p-CUARENTENA{background:rgba(255,107,43,.15);color:var(--accent2);border:1px solid var(--accent2);}
+
+/* STATS */
+.stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:var(--r);padding:14px;}
+.stat-n{font-family:var(--font-hd);font-size:34px;font-weight:800;line-height:1;}
+.stat-l{font-family:var(--font-mono);font-size:9px;letter-spacing:1.5px;color:var(--muted);margin-top:3px;text-transform:uppercase;}
+.s-a .stat-n{color:var(--accent);}   .s-g .stat-n{color:var(--green);}
+.s-o .stat-n{color:var(--accent2);} .s-y .stat-n{color:var(--yellow);}
+
+/* EMPTY */
+.empty{text-align:center;padding:32px 16px;color:var(--muted);}
+.empty svg{width:44px;height:44px;margin-bottom:10px;opacity:.25;}
+.empty p{font-size:12px;}
+
+/* UPLOAD */
+.upload{border:2px dashed var(--border);border-radius:var(--r);padding:24px;text-align:center;cursor:pointer;transition:border-color .2s;margin-bottom:12px;}
+.upload:hover{border-color:var(--accent);}
+.upload svg{width:36px;height:36px;stroke:var(--muted);margin-bottom:8px;}
+.upload p{font-size:12px;color:var(--muted);}
+
+/* QR GRID */
+.qr-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.qr-item{background:#fff;border-radius:10px;padding:10px;text-align:center;}
+.qr-item-lbl{font-size:9px;font-family:monospace;color:#333;margin-top:5px;word-break:break-all;}
+
+::-webkit-scrollbar{width:3px;}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px;}
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <div class="splash-logo">WMS<span>·</span>12</div>
+  <div class="splash-sub">Nave 12 · Almacenes PT</div>
+  <div class="splash-bar"><div class="splash-fill"></div></div>
+</div>
+
+<div id="toast"></div>
+
+<div id="app">
+  <header>
+    <div class="logo">WMS<span>·</span>12</div>
+    <div class="hdr-right">
+      <div class="badge" id="badge">0 mov.</div>
+      <button class="dl-btn" onclick="exportExcel()">↓ Excel</button>
+    </div>
+  </header>
+
+  <main>
+
+    <!-- ══ OPERAR ══ -->
+    <div class="sec active" id="sec-op">
+      <div class="sec-hd">Registrar<br/><span>Movimiento</span></div>
+
+      <div class="ops-grid">
+        <button class="op-btn op-i active" onclick="setOp('i',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 5v14M5 12l7 7 7-7"/></svg>
+          <span>Ingreso</span>
+        </button>
+        <button class="op-btn op-e" onclick="setOp('e',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+          <span>Egreso</span>
+        </button>
+        <button class="op-btn op-c" onclick="setOp('c',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+          <span>Consultar</span>
+        </button>
+        <button class="op-btn op-t" onclick="setOp('t',this)">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>
+          <span>Transferencia</span>
+        </button>
+      </div>
+
+      <!-- MODO ESCANEO -->
+      <div class="mode-row">
+        <button class="mode-btn active" id="mb-cam" onclick="setMode('cam')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          CÁMARA
+        </button>
+        <button class="mode-btn" id="mb-pda" onclick="setMode('pda')">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M14 18h.01M18 14h.01M18 18h.01"/></svg>
+          PDA / PISTOLA
+        </button>
+      </div>
+
+      <!-- ── MODO CÁMARA ── -->
+      <div id="modo-cam">
+
+        <!-- Scanner Ubicación -->
+        <div class="card" style="padding:12px;">
+          <div class="card-lbl">📍 Ubicación (QR del rack)</div>
+          <div id="loc-idle" class="scan-idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M14 18h.01M18 14h.01M18 18h.01"/></svg>
+            <p>Escanear QR de ubicación</p>
+            <button class="scan-open-btn loc" onclick="abrirCam('loc')">Abrir Cámara</button>
+          </div>
+          <div id="loc-active" style="display:none;">
+            <div class="scan-wrap">
+              <video id="vid-loc" autoplay playsinline muted></video>
+              <div class="scan-overlay"><div class="scan-frame" id="frame-loc"></div></div>
+              <div class="scan-lbl" id="lbl-loc">Apunta al QR de la ubicación</div>
+            </div>
+            <button class="scan-cancel" onclick="pararCam('loc')">✕ Cancelar</button>
+          </div>
+          <div id="chip-loc" style="display:none;">
+            <div class="chip loc">
+              <div>
+                <div class="chip-lbl">UBICACIÓN ESCANEADA</div>
+                <div class="chip-val" id="val-loc">—</div>
+              </div>
+              <button class="chip-x" onclick="limpiarScan('loc')">×</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Scanner Paleta (oculto en consulta) -->
+        <div class="card" id="card-pal" style="padding:12px;">
+          <div class="card-lbl">📦 Paleta (QR o código)</div>
+          <div id="pal-idle" class="scan-idle">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-4 0v2M8 7V5a2 2 0 00-4 0v2M12 12v5M9.5 12v5M14.5 12v5"/></svg>
+            <p>Escanear QR de paleta</p>
+            <button class="scan-open-btn pal" onclick="abrirCam('pal')">Abrir Cámara</button>
+          </div>
+          <div id="pal-active" style="display:none;">
+            <div class="scan-wrap">
+              <video id="vid-pal" autoplay playsinline muted></video>
+              <div class="scan-overlay"><div class="scan-frame pal"></div></div>
+              <div class="scan-lbl pal">Apunta al QR de la paleta</div>
+            </div>
+            <button class="scan-cancel" onclick="pararCam('pal')">✕ Cancelar</button>
+          </div>
+          <div id="chip-pal" style="display:none;">
+            <div class="chip pal">
+              <div>
+                <div class="chip-lbl">PALETA ESCANEADA</div>
+                <div class="chip-val" id="val-pal">—</div>
+              </div>
+              <button class="chip-x" onclick="limpiarScan('pal')">×</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── MODO PDA/PISTOLA ── -->
+      <div id="modo-pda" style="display:none;">
+        <div class="pistol-card">
+          <div class="card-lbl">📍 Código de Ubicación</div>
+          <div class="pistol-field">
+            <input type="text" id="pda-loc" placeholder="CPT1-01-01-A-01  (escanea o escribe)"
+              autocomplete="off" autocorrect="off" autocapitalize="characters"
+              oninput="pdaAutoAplicar()"
+            />
+          </div>
+          <div class="card-lbl" style="margin-top:10px;" id="pda-pal-lbl">📦 Número / Código de Paleta</div>
+          <div class="pistol-field" id="pda-pal-row">
+            <input type="text" id="pda-pal" placeholder="N° paleta  (escanea o escribe)"
+              autocomplete="off" autocorrect="off"
+            />
+          </div>
+          <button class="pistol-apply" onclick="aplicarPDA()" style="width:100%;margin-top:10px;">
+            ✓ Aplicar códigos
+          </button>
+          <p style="font-family:var(--font-mono);font-size:9px;color:var(--muted);margin-top:8px;text-align:center;letter-spacing:.5px;">
+            Con pistola PDA: apunta y el código se autocompleta → presiona Aplicar
+          </p>
+        </div>
+      </div>
+
+      <!-- Resultado Consulta -->
+      <div id="res-consulta" style="display:none;">
+        <div class="card">
+          <div class="card-lbl">Resultado de consulta</div>
+          <div id="res-body"></div>
+        </div>
+      </div>
+
+      <!-- Destino Transferencia -->
+      <div id="blk-dest" style="display:none;">
+        <div class="card" style="padding:12px;">
+          <div class="card-lbl">🔄 Ubicación Destino</div>
+          <div class="field"><input type="text" id="f-dest" placeholder="Código destino (escanea o escribe)"/></div>
+        </div>
+      </div>
+
+      <!-- FORMULARIO -->
+      <div class="card" id="form-card">
+        <div class="card-lbl" id="form-lbl">Datos del movimiento</div>
+        <div id="blk-sku">
+          <div class="field-row">
+            <div class="field"><label>SKU / Código</label><input type="text" id="f-sku" placeholder="SKU-001"/></div>
+            <div class="field"><label>Lote</label><input type="text" id="f-lote" placeholder="L-001"/></div>
+          </div>
+          <div class="field-row">
+            <div class="field"><label>Cant. pallets</label><input type="number" id="f-qty" placeholder="1" min="1"/></div>
+            <div class="field"><label>Fecha vencimiento</label><input type="date" id="f-vcto"/></div>
+          </div>
+          <div class="field"><label>Descripción</label><input type="text" id="f-desc" placeholder="Nombre del producto"/></div>
+        </div>
+        <div class="field"><label>Operador</label><input type="text" id="f-op" placeholder="Nombre del operador"/></div>
+        <div class="field"><label>Observaciones</label><input type="text" id="f-obs" placeholder="Opcional"/></div>
+        <button class="submit-btn i" id="btn-submit" onclick="registrar()">Registrar Ingreso</button>
+      </div>
+    </div>
+
+    <!-- ══ HISTORIAL ══ -->
+    <div class="sec" id="sec-log">
+      <div class="sec-hd">Historial<br/><span>de Movimientos</span></div>
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <div class="card-lbl" style="margin:0">Movimientos de sesión</div>
+          <button onclick="limpiarLog()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;">Limpiar</button>
+        </div>
+        <div id="log-list"><div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg><p>Sin movimientos aún</p></div></div>
+      </div>
+    </div>
+
+    <!-- ══ RESUMEN ══ -->
+    <div class="sec" id="sec-dash">
+      <div class="sec-hd">Resumen<br/><span>de Sesión</span></div>
+      <div class="stats-grid">
+        <div class="stat s-a"><div class="stat-n" id="st-tot">0</div><div class="stat-l">Total</div></div>
+        <div class="stat s-g"><div class="stat-n" id="st-i">0</div><div class="stat-l">Ingresos</div></div>
+        <div class="stat s-o"><div class="stat-n" id="st-e">0</div><div class="stat-l">Egresos</div></div>
+        <div class="stat s-y"><div class="stat-n" id="st-t">0</div><div class="stat-l">Transferencias</div></div>
+      </div>
+      <div class="card">
+        <div class="card-lbl">Exportar a Excel</div>
+        <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Descarga los movimientos del turno para actualizar el archivo WMS principal.</p>
+        <button onclick="exportExcel()" class="submit-btn c">↓ Descargar Excel del turno</button>
+      </div>
+    </div>
+
+    <!-- ══ QR ══ -->
+    <div class="sec" id="sec-qr">
+      <div class="sec-hd">Generar<br/><span>Etiquetas QR</span></div>
+      <div class="card">
+        <div class="card-lbl">Configurar etiquetas</div>
+        <div class="field">
+          <label>Cámara</label>
+          <select id="qr-cam">
+            <option>CPT1</option><option>CPT2</option>
+            <option>CPT3</option><option>CPT4</option>
+          </select>
+        </div>
+        <div class="field-row">
+          <div class="field"><label>Bloque desde</label><input type="number" id="qr-f" value="1" min="1" max="26"/></div>
+          <div class="field"><label>Bloque hasta</label><input type="number" id="qr-t" value="2" min="1" max="26"/></div>
+        </div>
+        <button onclick="genQR()" class="submit-btn c" style="margin-top:4px;">Generar QRs</button>
+      </div>
+      <div id="qr-out" style="display:none;">
+        <div class="card">
+          <div class="card-lbl" style="margin-bottom:12px;">Vista previa — toma pantallazos para imprimir</div>
+          <div class="qr-grid" id="qr-grid"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ CONFIG ══ -->
+    <div class="sec" id="sec-cfg">
+      <div class="sec-hd">Ajustes<br/><span>& Datos</span></div>
+      <div class="card">
+        <div class="card-lbl">Cargar WMS Excel (para consultas)</div>
+        <div class="upload" onclick="document.getElementById('fi').click()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <p>Toca para cargar<br/><strong>WMS_GESTOR_UBICACIONES_NAVE12.xlsx</strong></p>
+        </div>
+        <input type="file" id="fi" accept=".xlsx,.xls" style="display:none" onchange="cargarWMS(this)"/>
+        <div id="wms-st" style="font-family:var(--font-mono);font-size:10px;color:var(--muted);text-align:center;">Sin archivo cargado</div>
+      </div>
+      <div class="card">
+        <div class="card-lbl">Operador por defecto</div>
+        <div class="field"><input type="text" id="cfg-op" placeholder="Nombre del operador" oninput="guardarCfg()"/></div>
+      </div>
+
+      <!-- INSTRUCCIONES HTTPS -->
+      <div class="card" style="border-color:rgba(0,194,255,.3);background:rgba(0,194,255,.05);">
+        <div class="card-lbl" style="color:var(--accent);">⚠️ Para usar la cámara desde celular</div>
+        <p style="font-size:12px;color:var(--muted);line-height:1.7;">
+          Los navegadores móviles solo permiten acceso a la cámara desde páginas <strong style="color:var(--text);">HTTPS</strong>.<br/><br/>
+          <strong style="color:var(--text);">Pasos para publicar gratis en 2 min:</strong><br/>
+          1. Entra a <strong style="color:var(--accent);">netlify.com/drop</strong> desde tu PC<br/>
+          2. Crea una carpeta <code style="color:var(--accent);">WMS-NAVE12</code><br/>
+          3. Renombra este archivo a <code style="color:var(--accent);">index.html</code><br/>
+          4. Arrastra la carpeta a Netlify<br/>
+          5. Copia la URL <strong style="color:var(--green);">https://xxx.netlify.app</strong><br/>
+          6. Comparte por WhatsApp con operadores<br/><br/>
+          El modo <strong style="color:var(--yellow);">PDA/Pistola</strong> funciona sin HTTPS.
+        </p>
+      </div>
+
+      <div class="card" style="border-color:rgba(255,68,68,.25);">
+        <div class="card-lbl" style="color:var(--red);">Zona de peligro</div>
+        <button onclick="limpiarTodo()" style="width:100%;padding:12px;background:none;border:1px solid var(--red);border-radius:10px;color:var(--red);cursor:pointer;font-size:13px;">Limpiar sesión completa</button>
+      </div>
+    </div>
+
+  </main>
+
+  <nav>
+    <button class="nb active" onclick="irA('op',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="3" width="8" height="8" rx="1"/><rect x="3" y="13" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/></svg>
+      Operar
+    </button>
+    <button class="nb" onclick="irA('log',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Historial
+    </button>
+    <button class="nb" onclick="irA('dash',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/></svg>
+      Resumen
+    </button>
+    <button class="nb" onclick="irA('qr',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><path d="M14 14h.01M14 18h.01M18 14h.01M18 18h.01"/></svg>
+      QR
+    </button>
+    <button class="nb" onclick="irA('cfg',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      Config
+    </button>
+  </nav>
+</div>
+
+<script>
+// ── ESTADO ───────────────────────────────────────────────────────────────
+let op   = 'i';
+let modo = 'cam';
+let locVal = null, palVal = null;
+let movs = JSON.parse(localStorage.getItem('wms_movs') || '[]');
+let wmsData = [];
+let cfg  = JSON.parse(localStorage.getItem('wms_cfg') || '{"op":""}');
+let streams = {}, timers = {};
+let pdaBuffer = { loc: '', pal: '' };
+
+// ── INIT ─────────────────────────────────────────────────────────────────
+setTimeout(() => {
+  document.getElementById('splash').classList.add('hide');
+  document.getElementById('cfg-op').value = cfg.op || '';
+  if (cfg.op) document.getElementById('f-op').value = cfg.op;
+  renderLog(); stats();
+}, 1500);
+
+// ── NAV ──────────────────────────────────────────────────────────────────
+function irA(id, btn) {
+  document.querySelectorAll('.sec').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b => b.classList.remove('active'));
+  document.getElementById('sec-' + id).classList.add('active');
+  btn.classList.add('active');
+  if (id !== 'op') pararTodas();
+}
+
+// ── OPERACIÓN ─────────────────────────────────────────────────────────────
+const OP_CFG = {
+  i:{ lbl:'Registrar Ingreso',   cls:'i', showPal:true,  showSku:true,  showDest:false },
+  e:{ lbl:'Registrar Egreso',    cls:'e', showPal:true,  showSku:false, showDest:false },
+  c:{ lbl:'Consultar Ubicación', cls:'c', showPal:false, showSku:false, showDest:false },
+  t:{ lbl:'Registrar Transferencia', cls:'t', showPal:true, showSku:true, showDest:true },
+};
+function setOp(o, btn) {
+  op = o;
+  document.querySelectorAll('.op-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const c = OP_CFG[o];
+  document.getElementById('btn-submit').textContent  = c.lbl;
+  document.getElementById('btn-submit').className    = 'submit-btn ' + c.cls;
+  document.getElementById('card-pal').style.display  = c.showPal  ? 'block' : 'none';
+  document.getElementById('blk-sku').style.display   = c.showSku  ? 'block' : 'none';
+  document.getElementById('blk-dest').style.display  = c.showDest ? 'block' : 'none';
+  document.getElementById('res-consulta').style.display = 'none';
+  // Actualizar labels PDA
+  document.getElementById('pda-pal-lbl').style.display = c.showPal ? 'block' : 'none';
+  document.getElementById('pda-pal-row').style.display  = c.showPal ? 'flex'  : 'none';
+}
+
+// ── MODO ESCANEO ──────────────────────────────────────────────────────────
+function setMode(m) {
+  modo = m;
+  document.getElementById('mb-cam').classList.toggle('active', m === 'cam');
+  document.getElementById('mb-pda').classList.toggle('active', m === 'pda');
+  document.getElementById('modo-cam').style.display = m === 'cam' ? 'block' : 'none';
+  document.getElementById('modo-pda').style.display = m === 'pda' ? 'block' : 'none';
+  if (m === 'pda') pararTodas();
+}
+
+// ── CÁMARA ────────────────────────────────────────────────────────────────
+async function abrirCam(tipo) {
+  // Solicitar cámara trasera con máxima resolución posible
+  const constraints = {
+    video: {
+      facingMode: { ideal: 'environment' },
+      width:  { ideal: 1920 },
+      height: { ideal: 1080 },
+    }
+  };
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    streams[tipo] = stream;
+    const vid = document.getElementById('vid-' + tipo);
+    vid.srcObject = stream;
+
+    // Esperar metadata antes de reproducir (fix iOS)
+    vid.onloadedmetadata = async () => {
+      try { await vid.play(); } catch(e) {}
+      iniciarDecode(tipo, vid);
+    };
+
+    document.getElementById(tipo + '-idle').style.display   = 'none';
+    document.getElementById(tipo + '-active').style.display = 'block';
+    document.getElementById(tipo + '-idle').style.display   = 'none';
+
+  } catch(err) {
+    if (err.name === 'NotAllowedError') {
+      toast('Permiso de cámara denegado. Actívalo en ajustes del navegador.', 'err');
+    } else if (err.name === 'NotFoundError') {
+      toast('No se encontró cámara en este dispositivo.', 'err');
+    } else {
+      toast('Error al abrir cámara: ' + err.message, 'err');
+    }
+    console.error(err);
+  }
+}
+
+function iniciarDecode(tipo, vid) {
+  const canvas = document.createElement('canvas');
+  const ctx    = canvas.getContext('2d', { willReadFrequently: true });
+  let detectado = false;
+
+  timers[tipo] = setInterval(() => {
+    if (detectado) return;
+    if (vid.readyState < vid.HAVE_ENOUGH_DATA) return;
+    if (!vid.videoWidth) return;
+
+    canvas.width  = vid.videoWidth;
+    canvas.height = vid.videoHeight;
+    ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+
+    let imageData;
+    try { imageData = ctx.getImageData(0, 0, canvas.width, canvas.height); }
+    catch(e) { return; }
+
+    // Intentar detectar QR
+    const qr = jsQR(imageData.data, imageData.width, imageData.height, {
+      inversionAttempts: 'attemptBoth',
+    });
+
+    if (qr && qr.data) {
+      detectado = true;
+      const val = qr.data.trim();
+      clearInterval(timers[tipo]);
+      pararCam(tipo);
+      procesarScan(tipo, val);
+    }
+  }, 120);
+}
+
+function pararCam(tipo) {
+  clearInterval(timers[tipo]);
+  if (streams[tipo]) {
+    streams[tipo].getTracks().forEach(t => t.stop());
+    delete streams[tipo];
+  }
+  const vid = document.getElementById('vid-' + tipo);
+  if (vid) vid.srcObject = null;
+  document.getElementById(tipo + '-idle').style.display   = 'flex';
+  document.getElementById(tipo + '-active').style.display = 'none';
+}
+
+function pararTodas() {
+  ['loc','pal'].forEach(t => { if (streams[t]) pararCam(t); });
+}
+
+// ── PROCESO DE SCAN ───────────────────────────────────────────────────────
+function procesarScan(tipo, val) {
+  vibrar();
+  toast('✓ Código detectado', 'ok');
+  if (tipo === 'loc') {
+    locVal = val;
+    document.getElementById('val-loc').textContent = val;
+    document.getElementById('chip-loc').style.display = 'block';
+    if (op === 'c') mostrarConsulta(val);
+  } else {
+    palVal = val;
+    document.getElementById('val-pal').textContent = val;
+    document.getElementById('chip-pal').style.display = 'block';
+  }
+}
+
+function limpiarScan(tipo) {
+  if (tipo === 'loc') { locVal = null; document.getElementById('chip-loc').style.display = 'none'; document.getElementById('res-consulta').style.display = 'none'; }
+  else               { palVal = null; document.getElementById('chip-pal').style.display = 'none'; }
+}
+
+// ── PDA/PISTOLA ───────────────────────────────────────────────────────────
+// La pistola PDA actúa como teclado: escribe el código y manda Enter
+// Detectamos el Enter automáticamente para UX fluida
+document.addEventListener('DOMContentLoaded', () => {
+  const pdaLocInput = document.getElementById('pda-loc');
+  const pdaPalInput = document.getElementById('pda-pal');
+
+  // Pistola envía Enter al terminar de leer
+  if (pdaLocInput) {
+    pdaLocInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = pdaLocInput.value.trim();
+        if (v) {
+          locVal = v;
+          toast('📍 Ubicación: ' + v, 'ok');
+          if (op === 'c') mostrarConsulta(v);
+          // Mover foco a paleta si aplica
+          if (OP_CFG[op].showPal) pdaPalInput.focus();
+        }
+      }
+    });
+  }
+  if (pdaPalInput) {
+    pdaPalInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const v = pdaPalInput.value.trim();
+        if (v) { palVal = v; toast('📦 Paleta: ' + v, 'ok'); }
+      }
+    });
+  }
+});
+
+function pdaAutoAplicar() {
+  // Cuando la pistola escribe rápido (>10 chars en <300ms) auto-aplica
+  // No hacemos nada aquí, dejamos que el usuario presione Aplicar o Enter
+}
+
+function aplicarPDA() {
+  const loc = document.getElementById('pda-loc').value.trim();
+  const pal = document.getElementById('pda-pal').value.trim();
+  if (!loc) { toast('Ingresa el código de ubicación', 'err'); return; }
+  locVal = loc;
+  if (pal) palVal = pal;
+  toast('✓ Códigos aplicados', 'ok');
+  if (op === 'c') mostrarConsulta(loc);
+}
+
+// ── CONSULTA ──────────────────────────────────────────────────────────────
+function mostrarConsulta(cod) {
+  const found = wmsData.find(r => r.cod === cod);
+  const lastMov = movs.filter(m => m.ubicacion === cod).sort((a,b) => b.ts - a.ts)[0];
+
+  let estado='LIBRE', sku='—', lote='—', qty='—', desc='—', vcto='—', tipo='—', cam='—';
+
+  if (found) {
+    ({ estado='LIBRE', sku='—', lote='—', qty='—', desc='—', vcto='—' } = found);
+    tipo = found.tipo || '—'; cam = found.camara || cod.split('-')[0] || '—';
+  } else {
+    const parts = cod.split('-');
+    cam  = parts[0] || '—';
+    const blk = parseInt(parts[1]) || 0;
+    tipo = (['CPT3','CPT4'].includes(cam) && blk < 26) ? 'ACUMULATIVO' : 'SELECTIVO';
+    if (lastMov) {
+      if (lastMov.op === 'i') { estado='OCUPADO'; sku=lastMov.sku; lote=lastMov.lote; qty=lastMov.qty; desc=lastMov.desc; }
+      else if (lastMov.op === 'e') estado = 'LIBRE';
+    }
+  }
+
+  document.getElementById('res-body').innerHTML = `
+    <div class="res-row"><span class="res-k">Código</span><span class="res-v" style="font-family:var(--font-mono);font-size:11px;">${cod}</span></div>
+    <div class="res-row"><span class="res-k">Cámara</span><span class="res-v">${cam}</span></div>
+    <div class="res-row"><span class="res-k">Tipo rack</span><span class="res-v">${tipo}</span></div>
+    <div class="res-row"><span class="res-k">Estado</span><span class="res-v"><span class="pill p-${estado}">${estado}</span></span></div>
+    <div class="res-row"><span class="res-k">SKU</span><span class="res-v">${sku}</span></div>
+    <div class="res-row"><span class="res-k">Descripción</span><span class="res-v">${desc}</span></div>
+    <div class="res-row"><span class="res-k">Lote</span><span class="res-v">${lote}</span></div>
+    <div class="res-row"><span class="res-k">Pallets</span><span class="res-v">${qty}</span></div>
+    <div class="res-row"><span class="res-k">Vencimiento</span><span class="res-v">${vcto}</span></div>
+  `;
+  document.getElementById('res-consulta').style.display = 'block';
+}
+
+// ── REGISTRAR ─────────────────────────────────────────────────────────────
+function registrar() {
+  // Validar ubicación
+  const ubicacion = locVal || (modo === 'pda' ? document.getElementById('pda-loc').value.trim() : null);
+  if (!ubicacion) { toast('Primero escanea o ingresa la ubicación', 'err'); return; }
+  if (op === 'c') { mostrarConsulta(ubicacion); return; }
+
+  const paleta = palVal || (modo === 'pda' ? document.getElementById('pda-pal').value.trim() : '—') || '—';
+  const operador = document.getElementById('f-op').value || cfg.op || 'Operador';
+  const now = new Date();
+
+  const rec = {
+    ts:        now.getTime(),
+    op,
+    ubicacion,
+    paleta,
+    sku:    document.getElementById('f-sku')?.value  || '—',
+    lote:   document.getElementById('f-lote')?.value || '—',
+    qty:    document.getElementById('f-qty')?.value  || '—',
+    vcto:   document.getElementById('f-vcto')?.value || '—',
+    desc:   document.getElementById('f-desc')?.value || '—',
+    dest:   document.getElementById('f-dest')?.value || '—',
+    operador,
+    obs:    document.getElementById('f-obs').value || '—',
+    fecha:  now.toLocaleDateString('es-PE'),
+    hora:   now.toLocaleTimeString('es-PE',{hour:'2-digit',minute:'2-digit'}),
+  };
+
+  movs.unshift(rec);
+  localStorage.setItem('wms_movs', JSON.stringify(movs));
+
+  // Actualizar cache WMS si está cargado
+  const idx = wmsData.findIndex(r => r.cod === ubicacion);
+  if (idx >= 0) {
+    if (op === 'i') Object.assign(wmsData[idx], {estado:'OCUPADO',sku:rec.sku,lote:rec.lote,qty:rec.qty,desc:rec.desc,vcto:rec.vcto});
+    else if (op === 'e') Object.assign(wmsData[idx], {estado:'LIBRE',sku:'',lote:'',qty:'',desc:'',vcto:''});
+    else if (op === 't') {
+      wmsData[idx].estado = 'LIBRE';
+      const di = wmsData.findIndex(r => r.cod === rec.dest);
+      if (di >= 0) Object.assign(wmsData[di], {estado:'OCUPADO',sku:rec.sku,lote:rec.lote});
+    }
+  }
+
+  const msgs = {i:'✓ Ingreso registrado',e:'✓ Egreso registrado',t:'✓ Transferencia registrada'};
+  toast(msgs[op], 'ok');
+  vibrar();
+  resetForm();
+  renderLog();
+  stats();
+}
+
+function resetForm() {
+  ['f-sku','f-lote','f-qty','f-vcto','f-desc','f-obs','f-dest','pda-loc','pda-pal'].forEach(id => {
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  locVal = null; palVal = null;
+  ['chip-loc','chip-pal','res-consulta'].forEach(id => document.getElementById(id).style.display = 'none');
+}
+
+// ── LOG ───────────────────────────────────────────────────────────────────
+const OP_NOMBRE = {i:'ingreso',e:'egreso',c:'consulta',t:'transfer'};
+function renderLog() {
+  const el = document.getElementById('log-list');
+  if (!movs.length) {
+    el.innerHTML = '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/></svg><p>Sin movimientos aún</p></div>';
+    return;
+  }
+  el.innerHTML = movs.slice(0,60).map(m => `
+    <div class="log-item">
+      <div class="log-dot ld-${m.op}"></div>
+      <div class="log-info">
+        <div class="log-code">${m.ubicacion}${m.paleta!=='—'?' · P:'+m.paleta:''}</div>
+        <div class="log-det">${m.sku!=='—'?m.sku+' · ':''}${m.operador} · ${m.fecha} ${m.hora}</div>
+      </div>
+      <span class="op-pill ${m.op}">${OP_NOMBRE[m.op]||m.op}</span>
+    </div>`).join('');
+  document.getElementById('badge').textContent = movs.length + ' mov.';
+}
+
+function limpiarLog() {
+  if (!confirm('¿Limpiar historial?')) return;
+  movs = []; localStorage.removeItem('wms_movs');
+  renderLog(); stats();
+}
+
+// ── STATS ─────────────────────────────────────────────────────────────────
+function stats() {
+  document.getElementById('st-tot').textContent = movs.length;
+  document.getElementById('st-i').textContent   = movs.filter(m=>m.op==='i').length;
+  document.getElementById('st-e').textContent   = movs.filter(m=>m.op==='e').length;
+  document.getElementById('st-t').textContent   = movs.filter(m=>m.op==='t').length;
+  document.getElementById('badge').textContent  = movs.length + ' mov.';
+}
+
+// ── EXPORT EXCEL ──────────────────────────────────────────────────────────
+function exportExcel() {
+  if (!movs.length) { toast('Sin movimientos para exportar', 'inf'); return; }
+  const rows = movs.map(m => ({
+    'FECHA': m.fecha, 'HORA': m.hora,
+    'OPERACIÓN': {i:'INGRESO',e:'EGRESO',c:'CONSULTA',t:'TRANSFERENCIA'}[m.op]||m.op,
+    'UBICACIÓN ORIGEN': m.ubicacion, 'N° PALETA': m.paleta,
+    'SKU': m.sku, 'DESCRIPCIÓN': m.desc, 'LOTE': m.lote,
+    'CANT. PALLETS': m.qty, 'FECHA VCTO': m.vcto,
+    'UBICACIÓN DESTINO': m.dest, 'OPERADOR': m.operador, 'OBSERVACIONES': m.obs,
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [10,8,14,22,14,14,26,14,13,12,22,16,24].map(w=>({wch:w}));
+  const wb2 = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb2, ws, 'Movimientos');
+  const fecha = new Date().toLocaleDateString('es-PE').replace(/\//g,'-');
+  XLSX.writeFile(wb2, `Movimientos_NAVE12_${fecha}.xlsx`);
+  toast('✓ Excel descargado', 'ok');
+}
+
+// ── CARGAR WMS ────────────────────────────────────────────────────────────
+function cargarWMS(input) {
+  const file = input.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb2 = XLSX.read(e.target.result, {type:'array'});
+      const ws  = wb2.Sheets['MAESTRO UBICACIONES'];
+      if (!ws) { toast('Hoja "MAESTRO UBICACIONES" no encontrada', 'err'); return; }
+      const data = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      wmsData = data.slice(3).filter(r=>r[7]).map(r => ({
+        camara:r[0], tipo:r[1], cod:r[7],
+        sku:r[8], desc:r[9], lote:r[10],
+        vcto:r[11], qty:r[13], estado:r[14]||'LIBRE',
+      }));
+      document.getElementById('wms-st').innerHTML =
+        `<span style="color:var(--green)">✓ ${wmsData.length} ubicaciones cargadas</span>`;
+      toast(`${wmsData.length} ubicaciones cargadas`, 'ok');
+    } catch(err) { toast('Error al leer el archivo', 'err'); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ── QR GENERATOR ──────────────────────────────────────────────────────────
+function genQR() {
+  const cam  = document.getElementById('qr-cam').value;
+  const from = parseInt(document.getElementById('qr-f').value);
+  const to   = parseInt(document.getElementById('qr-t').value);
+  if (from > to) { toast('Bloque inicio debe ser ≤ bloque fin', 'err'); return; }
+
+  const codes = [];
+  for (let b = from; b <= to; b++) {
+    const bs = String(b).padStart(2,'0');
+    ['A','B','C'].forEach(n => codes.push(`${cam}-${bs}-01-${n}-01`));
+  }
+
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = '';
+  codes.slice(0,16).forEach(code => {
+    const div = document.createElement('div');
+    div.className = 'qr-item';
+    const qd = document.createElement('div');
+    div.appendChild(qd);
+    const lbl = document.createElement('div');
+    lbl.className = 'qr-item-lbl';
+    lbl.textContent = code;
+    div.appendChild(lbl);
+    grid.appendChild(div);
+    try { new QRCode(qd,{text:code,width:110,height:110,colorDark:'#0A1628',colorLight:'#ffffff'}); }
+    catch(e){}
+  });
+  document.getElementById('qr-out').style.display = 'block';
+  toast(`${Math.min(codes.length,16)} QRs generados`, 'inf');
+}
+
+// ── CONFIG ────────────────────────────────────────────────────────────────
+function guardarCfg() {
+  cfg.op = document.getElementById('cfg-op').value;
+  localStorage.setItem('wms_cfg', JSON.stringify(cfg));
+}
+function limpiarTodo() {
+  if (!confirm('¿Eliminar todos los datos de sesión?')) return;
+  movs = []; wmsData = [];
+  localStorage.clear();
+  renderLog(); stats();
+  document.getElementById('wms-st').textContent = 'Sin archivo cargado';
+  toast('Sesión limpiada', 'inf');
+}
+
+// ── UTILS ─────────────────────────────────────────────────────────────────
+let toastT;
+function toast(msg, type='inf') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = 'show ' + type;
+  clearTimeout(toastT);
+  toastT = setTimeout(()=>el.classList.remove('show'), 2800);
+}
+function vibrar() { if (navigator.vibrate) navigator.vibrate([40,20,40]); }
+</script>
+</body>
+</html>
